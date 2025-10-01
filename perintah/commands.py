@@ -56,29 +56,6 @@ def register_commands(client):
         ping_ms = int((end - start) * 1000)
         await event.edit(f"🏓 Pong!\n⏱ {ping_ms} ms")
 
-    # 📌 .help
-    @client.on(events.NewMessage(pattern=r"^\.help$"))
-    async def handler_help(event):
-        help_text = """
-🤖 **Daftar Perintah Bot**
-
-📌 Utility:
-- `.ping` → cek respon bot
-- `.id` → cek ID grup/channel
-- `.restart` → restart bot
-
-📌 Grup & Channel:
-- `.buat g <jumlah?> <nama>` → buat supergroup
-- `.buat c <jumlah?> <nama>` → buat channel
-- `.buat b <jumlah?> <nama>` → buat basic group
-  (jumlah opsional, default 1)
-
-📌 Contoh:
-- `.buat g 1 Warung BulLove`
-- `.buat c 2 Channel Promo`
-- `.buat g Warung MC`  (otomatis 1 grup)
-"""
-        await event.edit(help_text)
 
     # 📌 .id
     @client.on(events.NewMessage(pattern=r"^\.id$"))
