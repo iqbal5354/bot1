@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+import asyncio
 from telethon import events
 from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
@@ -24,6 +25,14 @@ def progress_bar(current, total, length=20):
     filled = int(length * current // total)
     bar = "█" * filled + "▒" * (length - filled)
     return f"[{bar}] {current}/{total}"
+
+
+# 🔹 Animasi loading helper
+async def animate_loading(msg, text, delay=0.3):
+    frames = ["⏳", "⌛", "🔄", "🌀", "⚙️"]
+    for frame in frames:
+        await msg.edit(f"{frame} {text}")
+        await asyncio.sleep(delay)
 
 
 # === COMMANDS ===
@@ -69,7 +78,7 @@ def register_commands(client):
         chat_id = chat.id
         if not str(chat_id).startswith("-100") and (event.is_group or event.is_channel):
             chat_id = f"-100{abs(chat_id)}"
-        await event.edit(f"🆔 Chat ID: `{chat_id}`")
+        await event.edit(f"🆔 Chat ID: {chat_id}")
 
     # 📌 .buat
     @client.on(events.NewMessage(pattern=r"^\.buat (b|g|c)(?: (\d+))? (.+)"))
@@ -81,12 +90,15 @@ def register_commands(client):
         jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
         nama = event.pattern_match.group(3)
 
-        await event.edit("⏳ Sedang membuat group/channel...")
+        msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
 
         try:
             hasil = []
             for i in range(1, jumlah + 1):
                 nama_group = f"{nama} {i}" if jumlah > 1 else nama
+
+                # 🔹 animasi loading tiap step
+                await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
 
                 if jenis == "b":
                     r = await client(CreateChatRequest(
@@ -106,14 +118,14 @@ def register_commands(client):
                 hasil.append(f"✅ [{nama_group}]({link})")
 
                 bar = progress_bar(i, jumlah)
-                await event.edit(f"🔄 Membuat group/channel...\n{bar}")
+                await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
 
-            await event.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
+            await msg.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
 
         except FloodWaitError as e:
-            await event.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
+            await msg.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
         except Exception as e:
-            await event.edit(f"❌ Error: {str(e)}")
+            await msg.edit(f"❌ Error: {str(e)}")
 
     # 📌 .restart
     @client.on(events.NewMessage(pattern=r"^\.restart$"))
