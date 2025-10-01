@@ -1,24 +1,18 @@
-import json
 from telethon import events
-
-CONFIG_FILE = "config.json"
-
-def save_token(token: str):
-    with open(CONFIG_FILE, "w") as f:
-        json.dump({"BOT_TOKEN": token}, f)
-
-def load_token():
-    try:
-        with open(CONFIG_FILE, "r") as f:
-            data = json.load(f)
-            return data.get("BOT_TOKEN")
-    except FileNotFoundError:
-        return None
-
+from bot import save_token  # ambil fungsi simpan token dari bot.py
 
 def init(client):
-    @client.on(events.NewMessage(pattern=r"^\.addbot (.+)$"))
-    async def add_bot(event):
+    @client.on(events.NewMessage(pattern=r"^\.addbot(?:\s+(.+))?"))
+    async def handler_addbot(event):
         token = event.pattern_match.group(1)
-        save_token(token)
-        await event.reply("✅ BOT_TOKEN berhasil disimpan. Restart bot untuk mengaktifkan mode Bot.")
+
+        if not token:
+            await event.reply(
+                "⚠️ Kamu harus memberikan token bot!\n\n"
+                "Contoh:\n`.addbot 123456:ABC-YourTokenHere`\n\n"
+                "👉 Buat token baru di @BotFather kalau belum punya."
+            )
+            return
+
+        save_token(token.strip())
+        await event.reply("✅ Bot token berhasil disimpan. Restart untuk beralih ke **BOT mode**.")
