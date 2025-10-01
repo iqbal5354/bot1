@@ -102,8 +102,10 @@ def init(client):
 
 
 # 📌 Help section supaya auto kebaca di .help
-__HELP__ = """
-**Sangmata Tools**
-`.sg <reply/userid/username>` → cek riwayat **nama**
-`.sgu <reply/userid/username>` → cek riwayat **username**
-"""
+# 📖 Help dictionary
+HELP = {
+    "sangmata": [
+        ".sg <reply/userid/username> → cek riwayat nama",
+        ".sgu <reply/userid/username> → cek riwayat username",
+    ]
+}
