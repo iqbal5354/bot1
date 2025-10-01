@@ -1,3 +1,5 @@
+# commands.py
+
 import sys
 import os
 import time
@@ -9,6 +11,7 @@ from telethon.errors import FloodWaitError
 
 OWNER_ID = None
 
+# === OWNER INIT ===
 async def init_owner(client):
     global OWNER_ID
     me = await client.get_me()
@@ -20,14 +23,12 @@ async def init_owner(client):
         pass
 
 
-# 🔹 Progress bar helper
+# === HELPERS ===
 def progress_bar(current, total, length=20):
     filled = int(length * current // total)
     bar = "█" * filled + "▒" * (length - filled)
     return f"[{bar}] {current}/{total}"
 
-
-# 🔹 Animasi loading helper
 async def animate_loading(msg, text, delay=0.3):
     frames = ["⏳", "⌛", "🔄", "🌀", "⚙️"]
     for frame in frames:
@@ -82,25 +83,25 @@ def register_commands(client):
 
     # 📌 .buat
     @client.on(events.NewMessage(pattern=r"^\.buat (b|g|c)(?: (\d+))? (.+)"))
-async def handler_buat(event):
-    if event.sender_id != OWNER_ID:
-        return
+    async def handler_buat(event):
+        if event.sender_id != OWNER_ID:
+            return
 
-    # 🔹 baris tambahan ini untuk hapus command asli
-    await event.delete()
+        # 🔹 hapus command asli
+        await event.delete()
 
-    jenis = event.pattern_match.group(1)
-    jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
-    nama = event.pattern_match.group(3)
+        jenis = event.pattern_match.group(1)
+        jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
+        nama = event.pattern_match.group(3)
 
-    msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
+        msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
 
         try:
             hasil = []
             for i in range(1, jumlah + 1):
                 nama_group = f"{nama} {i}" if jumlah > 1 else nama
 
-                # 🔹 animasi loading tiap step
+                # animasi per step
                 await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
 
                 if jenis == "b":
