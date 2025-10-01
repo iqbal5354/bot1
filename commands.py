@@ -1,8 +1,8 @@
 import sys
-import asyncio
+import os
 import time
 from telethon import events
-from telethon.tl.functions.channels import CreateChannelRequest, InviteToChannelRequest
+from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
 from telethon.errors import FloodWaitError
 
@@ -27,17 +27,16 @@ def progress_bar(current, total, length=20):
 
 
 # === COMMANDS ===
-
 def register_commands(client):
 
     # 📌 .ping
     @client.on(events.NewMessage(pattern=r"^\.ping$"))
     async def handler_ping(event):
         start = time.perf_counter()
-        msg = await event.respond("🏓 Pong...")
+        await event.edit("🏓 Pong...")
         end = time.perf_counter()
         ping_ms = int((end - start) * 1000)
-        await msg.edit(f"🏓 Pong!\n⏱ {ping_ms} ms")
+        await event.edit(f"🏓 Pong!\n⏱ {ping_ms} ms")
 
     # 📌 .help
     @client.on(events.NewMessage(pattern=r"^\.help$"))
@@ -61,18 +60,16 @@ def register_commands(client):
 - `.buat c 2 Channel Promo`
 - `.buat g Warung MC`  (otomatis 1 grup)
 """
-        await event.respond(help_text)
+        await event.edit(help_text)
 
     # 📌 .id
     @client.on(events.NewMessage(pattern=r"^\.id$"))
     async def handler_id(event):
         chat = await event.get_chat()
-        await event.delete()
         chat_id = chat.id
         if not str(chat_id).startswith("-100") and (event.is_group or event.is_channel):
             chat_id = f"-100{abs(chat_id)}"
-        msg = await event.respond("🔍 Mencari ID chat...")
-        await msg.edit(f"🆔 Chat ID: `{chat_id}`")
+        await event.edit(f"🆔 Chat ID: `{chat_id}`")
 
     # 📌 .buat
     @client.on(events.NewMessage(pattern=r"^\.buat (b|g|c)(?: (\d+))? (.+)"))
@@ -84,8 +81,7 @@ def register_commands(client):
         jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
         nama = event.pattern_match.group(3)
 
-        await event.delete()
-        msg = await event.respond("⏳ Sedang membuat group/channel...")
+        await event.edit("⏳ Sedang membuat group/channel...")
 
         try:
             hasil = []
@@ -110,22 +106,21 @@ def register_commands(client):
                 hasil.append(f"✅ [{nama_group}]({link})")
 
                 bar = progress_bar(i, jumlah)
-                await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
+                await event.edit(f"🔄 Membuat group/channel...\n{bar}")
 
-            await msg.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
+            await event.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
 
         except FloodWaitError as e:
-            await msg.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
+            await event.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
         except Exception as e:
-            await msg.edit(f"❌ Error: {str(e)}")
+            await event.edit(f"❌ Error: {str(e)}")
 
     # 📌 .restart
     @client.on(events.NewMessage(pattern=r"^\.restart$"))
     async def handler_restart(event):
         if event.sender_id != OWNER_ID:
             return
-        await event.delete()
-        await event.respond("♻️ Bot sedang restart...")
+        await event.edit("♻️ Bot sedang restart...")
         args = [sys.executable] + sys.argv
         os.execv(sys.executable, args)
 
