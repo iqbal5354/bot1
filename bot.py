@@ -14,18 +14,27 @@ BOT_TOKEN = load_token()
 
 if BOT_TOKEN:
     print("🤖 Bullove BOT starting...")
-    client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+    try:
+        client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+    except Exception as e:
+        print(f"❌ Gagal start Bot: {e}")
+        exit(1)
 else:
     print("🤖 Bullove Userbot starting...")
-    client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
+    try:
+        client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
+    except Exception as e:
+        print(f"❌ Gagal start Userbot: {e}")
+        exit(1)
 
 
 async def main():
+    # Import helper untuk ambil owner otomatis
     from tools import get_owner_id
     owner_id, owner_name = await get_owner_id(client)
     print(f"ℹ️ OWNER_ID otomatis diset ke: {owner_id} ({owner_name})")
 
-    # Auto load semua file di folder "perintah"
+    # Auto load semua modul di folder perintah
     for file in os.listdir("perintah"):
         if file.endswith(".py") and not file.startswith("__"):
             modulename = file[:-3]
