@@ -3,18 +3,36 @@ import importlib
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
-# Ambil ENV
+# === Fungsi simpan & ambil token Bot ===
+TOKEN_FILE = "bot_token.txt"
+
+def save_token(token: str):
+    with open(TOKEN_FILE, "w") as f:
+        f.write(token.strip())
+
+def load_token() -> str | None:
+    if os.path.exists(TOKEN_FILE):
+        with open(TOKEN_FILE, "r") as f:
+            return f.read().strip()
+    return None
+
+# === Ambil ENV untuk Userbot ===
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
 SESSION = os.getenv("SESSION")
 
-# Inisialisasi client
-client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
-
-
-async def main():
+# === Pilih mode Bot atau Userbot ===
+BOT_TOKEN = load_token()
+if BOT_TOKEN:
+    print("🤖 Bullove BOT starting...")
+    client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+else:
     print("🤖 Bullove Userbot starting...")
+    client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
 
+
+# === Main ===
+async def main():
     # Auto load semua file di folder "perintah"
     for file in os.listdir("perintah"):
         if file.endswith(".py") and not file.startswith("__"):
