@@ -31,12 +31,18 @@ else:
 async def main():
     from tools import get_owner_id, check_mode
 
-    logging.info("🔍 Mendapatkan owner id ...")
-    owner_id, owner_name = await get_owner_id(client)
-    logging.info(f"ℹ️ OWNER_ID otomatis diset ke: {owner_id} ({owner_name})")
+    try:
+        logging.info("🔍 Mendapatkan owner id ...")
+        owner_id, owner_name = await get_owner_id(client)
+        logging.info(f"ℹ️ OWNER_ID otomatis diset ke: {owner_id} ({owner_name})")
+    except Exception as e:
+        logging.error(f"❌ Gagal mendapatkan owner id: {e}", exc_info=True)
 
-    mode = check_mode(client)
-    logging.info(f"🔧 Mode berjalan: {mode}")
+    try:
+        mode = check_mode(client)
+        logging.info(f"🔧 Mode berjalan: {mode}")
+    except Exception as e:
+        logging.error(f"❌ Gagal cek mode: {e}", exc_info=True)
 
     # Auto load semua file di folder "perintah"
     logging.info("📂 Mulai load perintah...")
@@ -45,13 +51,13 @@ async def main():
             modulename = file[:-3]
             try:
                 module = importlib.import_module(f"perintah.{modulename}")
-                logging.info(f"✅ Loaded {modulename}")
                 if hasattr(module, "init"):
                     module.init(client)
                 if hasattr(module, "init_owner"):
                     await module.init_owner(client)
+                logging.info(f"✅ Loaded {modulename}")
             except Exception as e:
-                logging.error(f"❌ Gagal load {modulename}: {e}")
+                logging.error(f"❌ Gagal load {modulename}: {e}", exc_info=True)
 
     logging.info("🚀 Semua modul berhasil dimuat, menunggu event ...")
     # Jalankan client
