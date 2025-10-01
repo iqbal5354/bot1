@@ -17,17 +17,20 @@ API_HASH = os.getenv("API_HASH")
 SESSION = os.getenv("SESSION")
 
 logging.info("🔍 Cek token dari .addbot ...")
-# Cek apakah ada token bot dari .addbot
 BOT_TOKEN = load_token()
+
+# Simpan BOT_TOKEN ke .env supaya survive restart
+if BOT_TOKEN and not os.getenv("BOT_TOKEN"):
+    with open(".env", "a") as f:
+        f.write(f"\nBOT_TOKEN={BOT_TOKEN}\n")
+    os.environ["BOT_TOKEN"] = BOT_TOKEN
 
 if BOT_TOKEN:
     logging.info("🤖 Bullove BOT starting...")
     client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-    client._bot = True   # ✅ Manual flag supaya terbaca BOT
 else:
     logging.info("🤖 Bullove Userbot starting...")
     client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
-    client._bot = False  # ✅ Manual flag supaya terbaca USERBOT
 
 
 async def main():
@@ -39,12 +42,21 @@ async def main():
         logging.info(f"ℹ️ OWNER_ID otomatis diset ke: {owner_id} ({owner_name})")
     except Exception as e:
         logging.error(f"❌ Gagal mendapatkan owner id: {e}", exc_info=True)
+        return
 
     try:
         mode = check_mode(client)
         logging.info(f"🔧 Mode berjalan: {mode}")
     except Exception as e:
         logging.error(f"❌ Gagal cek mode: {e}", exc_info=True)
+        mode = "UNKNOWN"
+
+    # Kirim notifikasi startup ke owner
+    try:
+        await client.send_message(owner_id, f"✅ Bullove aktif kembali\nMode: {mode}\nOwner: {owner_name}")
+        logging.info("📩 Notifikasi startup dikirim ke owner")
+    except Exception as e:
+        logging.error(f"❌ Gagal kirim notifikasi startup: {e}", exc_info=True)
 
     # Auto load semua file di folder "perintah"
     logging.info("📂 Mulai load perintah...")
@@ -62,7 +74,6 @@ async def main():
                 logging.error(f"❌ Gagal load {modulename}: {e}", exc_info=True)
 
     logging.info("🚀 Semua modul berhasil dimuat, menunggu event ...")
-    # Jalankan client
     await client.run_until_disconnected()
 
 
