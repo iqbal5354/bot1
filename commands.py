@@ -14,6 +14,7 @@ async def init_owner(client):
     OWNER_ID = me.id
     print(f"ℹ️ OWNER_ID otomatis diset ke: {OWNER_ID} ({me.username or me.first_name})")
     try:
+        # Notif startup (termasuk sesudah restart)
         await client.send_message(OWNER_ID, "✅ Bot berhasil dijalankan dan siap dipakai.")
     except Exception:
         pass
@@ -116,13 +117,13 @@ def register_commands(client):
             await event.edit(f"❌ Error: {str(e)}")
 
     # 📌 .restart
-    @client.on(events.NewMessage(pattern=r"^\.restart$"))
-    async def handler_restart(event):
-        if event.sender_id != OWNER_ID:
-            return
-        await event.edit("♻️ Bot sedang restart...")
-        args = [sys.executable] + sys.argv
-        os.execv(sys.executable, args)
+   @client.on(events.NewMessage(pattern=r"^\.restart$"))
+async def handler_restart(event):
+    if event.sender_id != OWNER_ID:
+        return
+    await event.edit("♻️ Restarting bot...")
+    args = [sys.executable] + sys.argv
+    os.execv(sys.executable, args)
 
 
 # Panggil fungsi ini di bot.py setelah client dibuat
