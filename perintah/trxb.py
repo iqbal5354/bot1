@@ -1,20 +1,17 @@
 from telethon import events, Button
 
-IS_USERBOT = True  # default, nanti bisa auto cek
+IS_USERBOT = True  # default
 
 def init(client):
     global IS_USERBOT
-    # cek apakah client pakai bot token
-    if client._bot:  
-        IS_USERBOT = False
-    else:
-        IS_USERBOT = True
+    # auto cek apakah pakai bot token atau userbot
+    IS_USERBOT = not getattr(client, "is_bot", False)
 
     # 📌 command utama
     @client.on(events.NewMessage(pattern=r"^\.trxb$"))
     async def trx_menu(event):
         if IS_USERBOT:
-            # versi userbot → Button.text
+            # versi userbot → pakai Button.text
             buttons = [
                 [Button.text("📋 Isi", resize=True, single_use=True)],
                 [Button.text("💰 Dana Masuk", resize=True, single_use=True)],
@@ -24,7 +21,7 @@ def init(client):
             await event.respond("📖 **Menu TRX**\nPilih salah satu tombol:", buttons=buttons)
 
         else:
-            # versi bot → Button.inline
+            # versi bot → pakai Button.inline
             buttons = [
                 [Button.inline("📋 Isi", b"isi")],
                 [Button.inline("💰 Dana Masuk", b"dana")],
@@ -37,7 +34,9 @@ def init(client):
     @client.on(events.NewMessage(pattern="📋 Isi"))
     async def trx_isi(event):
         if IS_USERBOT:
-            await event.reply("👉 **Template Rekening:**\n```\nNama Bank:\nAtas Nama:\nNo Rek:\n```")
+            await event.reply(
+                "👉 **Template Rekening:**\n```\nNama Bank:\nAtas Nama:\nNo Rek:\n```"
+            )
 
     @client.on(events.NewMessage(pattern="💰 Dana Masuk"))
     async def trx_dana(event):
@@ -47,22 +46,40 @@ def init(client):
     @client.on(events.NewMessage(pattern="📝 Format"))
     async def trx_format(event):
         if IS_USERBOT:
-            await event.reply("👉 **Format TRX:**\n```\nTransaksi:\nPenjual:\nPembeli:\nHarga:\nFee:\n```")
+            await event.reply(
+                "👉 **Format TRX:**\n```\nTransaksi:\nPenjual:\nPembeli:\nHarga:\nFee:\n```"
+            )
 
     @client.on(events.NewMessage(pattern="📜 Aturan"))
     async def trx_aturan(event):
         if IS_USERBOT:
-            await event.reply("👉 **Aturan Rekber:**\n1. Jangan kasih OTP.\n2. Jangan hilang saat transaksi.\n3. Cancel tetap kena fee.")
+            await event.reply(
+                "👉 **Aturan Rekber:**\n1. Jangan kasih OTP.\n2. Jangan hilang saat transaksi.\n3. Cancel tetap kena fee."
+            )
 
     # 📌 handler untuk bot (inline)
     @client.on(events.CallbackQuery)
     async def callback_handler(event):
         if not IS_USERBOT:
             if event.data == b"isi":
-                await event.edit("👉 **Template Rekening:**\n```\nNama Bank:\nAtas Nama:\nNo Rek:\n```")
+                await event.edit(
+                    "👉 **Template Rekening:**\n```\nNama Bank:\nAtas Nama:\nNo Rek:\n```"
+                )
             elif event.data == b"dana":
                 await event.edit("👉 **Dana masuk! Silakan lanjut serah terima data.**")
             elif event.data == b"format":
-                await event.edit("👉 **Format TRX:**\n```\nTransaksi:\nPenjual:\nPembeli:\nHarga:\nFee:\n```")
+                await event.edit(
+                    "👉 **Format TRX:**\n```\nTransaksi:\nPenjual:\nPembeli:\nHarga:\nFee:\n```"
+                )
             elif event.data == b"aturan":
-                await event.edit("👉 **Aturan Rekber:**\n1. Jangan kasih OTP.\n2. Jangan hilang saat transaksi.\n3. Cancel tetap kena fee.")
+                await event.edit(
+                    "👉 **Aturan Rekber:**\n1. Jangan kasih OTP.\n2. Jangan hilang saat transaksi.\n3. Cancel tetap kena fee."
+                )
+
+
+# 📖 Help dictionary
+HELP = {
+    "trxb": [
+        ".trxb → buka menu transaksi dengan tombol (Userbot = text, Bot = inline)"
+    ]
+}
