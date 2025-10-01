@@ -23,9 +23,11 @@ BOT_TOKEN = load_token()
 if BOT_TOKEN:
     logging.info("🤖 Bullove BOT starting...")
     client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
+    client._bot = True   # ✅ Manual flag supaya terbaca BOT
 else:
     logging.info("🤖 Bullove Userbot starting...")
     client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
+    client._bot = False  # ✅ Manual flag supaya terbaca USERBOT
 
 
 async def main():
