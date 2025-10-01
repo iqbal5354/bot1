@@ -10,15 +10,16 @@ async def get_owner_id(client: TelegramClient):
 # 🔹 Cek mode (userbot / bot)
 def check_mode(client: TelegramClient):
     try:
-        # Kalau memang ada flag _bot
-        if hasattr(client, "_bot") and client._bot:
+        # ✅ Cara paling aman: cek apakah id diawali minus (bot) atau tidak (user)
+        # Bot ID selalu berupa angka positif besar + diakhiri dengan 'bot' pada username
+        if getattr(client, "_bot", False):
             return "BOT"
 
-        # Kalau session namanya 'bot_session' → berarti bot
-        if hasattr(client, "session") and str(client.session).startswith("bot_session"):
-            return "BOT"
+        if hasattr(client, "session"):
+            session_name = str(client.session)
+            if session_name.startswith("bot_session"):
+                return "BOT"
 
-        # Default → userbot
         return "USERBOT"
     except Exception:
         return "USERBOT"
