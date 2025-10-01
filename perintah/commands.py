@@ -82,15 +82,18 @@ def register_commands(client):
 
     # 📌 .buat
     @client.on(events.NewMessage(pattern=r"^\.buat (b|g|c)(?: (\d+))? (.+)"))
-    async def handler_buat(event):
-        if event.sender_id != OWNER_ID:
-            return
+async def handler_buat(event):
+    if event.sender_id != OWNER_ID:
+        return
 
-        jenis = event.pattern_match.group(1)
-        jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
-        nama = event.pattern_match.group(3)
+    # 🔹 baris tambahan ini untuk hapus command asli
+    await event.delete()
 
-        msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
+    jenis = event.pattern_match.group(1)
+    jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
+    nama = event.pattern_match.group(3)
+
+    msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
 
         try:
             hasil = []
