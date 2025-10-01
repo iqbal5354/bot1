@@ -11,13 +11,19 @@ SESSION = os.getenv("SESSION")
 # Inisialisasi client
 client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
 
-# Import semua command dari commands.py
+# Import commands
 import commands
+
 
 async def main():
     print("🤖 Bot starting...")
-    await commands.init_owner(client)  # inisialisasi OWNER_ID
+    # inisialisasi OWNER_ID
+    await commands.init_owner(client)
+    # daftarkan semua perintah
+    commands.init(client)
+    # jalanin client
     await client.run_until_disconnected()
+
 
 if __name__ == "__main__":
     with client:
