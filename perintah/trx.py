@@ -1,3 +1,12 @@
+HELP = {
+    "trx": [
+        ".isi → format isi rekening penjual",
+        ".danamasuk → konfirmasi dana sudah diterima",
+        ".format → template transaksi",
+        ".aturan → peraturan rekber",
+    ]
+}
+
 from telethon import events
 
 OWNER_ID = None
