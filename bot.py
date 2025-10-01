@@ -1,31 +1,27 @@
 import os
-import importlib
+import sys
 from telethon import TelegramClient
-from telethon.sessions import StringSession
+from perintah import init_all_owner, init   # ambil semua modul di folder perintah
 
-# Ambil ENV
+# ===== Konfigurasi API (gunakan variabel ENV agar aman) =====
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-SESSION = os.getenv("SESSION")
+SESSION = os.getenv("SESSION", "userbot")  # default session = "userbot"
 
 # Inisialisasi client
-client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
+client = TelegramClient(SESSION, API_ID, API_HASH)
 
 
 async def main():
-    print("🤖 Bullove Userbot starting...")
+    print("🤖 Bot sedang start...")
 
-    # Auto load semua file di folder "perintah"
-    for file in os.listdir("perintah"):
-        if file.endswith(".py") and not file.startswith("__"):
-            modulename = file[:-3]
-            module = importlib.import_module(f"perintah.{modulename}")
-            if hasattr(module, "init"):
-                module.init(client)   # panggil init(client)
-            if hasattr(module, "init_owner"):
-                await module.init_owner(client)
+    # 🔹 Set OWNER_ID otomatis dari akun yg login
+    await init_all_owner(client)
 
-    # Jalankan client
+    # 🔹 Daftarkan semua perintah dari folder perintah
+    init(client)
+
+    print("✅ Bot sudah jalan. Tekan Ctrl+C untuk stop.")
     await client.run_until_disconnected()
 
 
