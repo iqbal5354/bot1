@@ -10,19 +10,27 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# Ambil ENV dari Railway
-API_ID = int(os.getenv("API_ID"))
+# Ambil ENV
+API_ID = int(os.getenv("API_ID", "0"))
 API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # kalau pakai bot
-SESSION = os.getenv("SESSION")      # kalau pakai userbot
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # Untuk BOT
+SESSION = os.getenv("SESSION")      # Untuk Userbot
 
-# Tentukan mode
+client = None
+MODE = None
+
+# Tentukan mode otomatis
 if BOT_TOKEN:
     logging.info("🤖 Bullove BOT starting...")
     client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
-else:
+    MODE = "BOT"
+elif SESSION:
     logging.info("🤖 Bullove Userbot starting...")
     client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
+    MODE = "USERBOT"
+else:
+    logging.error("❌ Tidak ada BOT_TOKEN atau SESSION di Railway Variables!")
+    exit(1)
 
 
 async def main():
@@ -36,10 +44,13 @@ async def main():
         logging.error(f"❌ Gagal mendapatkan owner id: {e}", exc_info=True)
 
     # Cek mode
-    mode = check_mode(client)
-    logging.info(f"🔧 Mode berjalan: {mode}")
+    try:
+        mode = check_mode(client)
+        logging.info(f"🔧 Mode berjalan: {mode}")
+    except Exception as e:
+        logging.error(f"❌ Gagal cek mode: {e}", exc_info=True)
 
-    # Auto load semua file di folder "perintah"
+    # Auto load semua modul di folder perintah
     logging.info("📂 Mulai load perintah...")
     for file in os.listdir("perintah"):
         if file.endswith(".py") and not file.startswith("__"):
