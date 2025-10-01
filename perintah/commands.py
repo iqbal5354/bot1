@@ -1,3 +1,11 @@
+HELP = {
+    "utility": [
+        ".ping → cek respon bot",
+        ".id → cek ID grup/channel",
+        ".restart → restart bot",
+    ]
+}
+
 # commands.py
 
 import sys
