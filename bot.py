@@ -1,5 +1,5 @@
 import os
-import sys
+import importlib
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 
@@ -11,17 +11,21 @@ SESSION = os.getenv("SESSION")
 # Inisialisasi client
 client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
 
-# Import commands
-import commands
-
 
 async def main():
-    print("🤖 Bot starting...")
-    # inisialisasi OWNER_ID
-    await commands.init_owner(client)
-    # daftarkan semua perintah
-    commands.init(client)
-    # jalanin client
+    print("🤖 Bullove Userbot starting...")
+
+    # Auto load semua file di folder "perintah"
+    for file in os.listdir("perintah"):
+        if file.endswith(".py") and not file.startswith("__"):
+            modulename = file[:-3]
+            module = importlib.import_module(f"perintah.{modulename}")
+            if hasattr(module, "init"):
+                module.init(client)   # panggil init(client)
+            if hasattr(module, "init_owner"):
+                await module.init_owner(client)
+
+    # Jalankan client
     await client.run_until_disconnected()
 
 
