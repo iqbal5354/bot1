@@ -3,13 +3,15 @@ from telethon import events
 OWNER_ID = None
 
 async def init_owner(client):
+    """
+    Ambil ID akun pendeploy (userbot owner).
+    """
     global OWNER_ID
     me = await client.get_me()
     OWNER_ID = me.id
 
 
 def register_trx(client):
-
     # 📌 .isi
     @client.on(events.NewMessage(pattern=r"^\.isi$"))
     async def handler_isi(event):
@@ -92,3 +94,10 @@ def register_trx(client):
             "®️ 𝙒𝙖𝙧𝙪𝙣𝙜 𝘽𝙪𝙡𝙡𝙤𝙫𝙚",
             link_preview=False,
         )
+
+
+def init(client):
+    """
+    Fungsi yang dipanggil otomatis dari bot.py
+    """
+    register_trx(client)
