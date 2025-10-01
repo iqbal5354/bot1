@@ -3,7 +3,6 @@ import importlib
 import logging
 from telethon import TelegramClient
 from telethon.sessions import StringSession
-from perintah.addbot import load_token  # ambil fungsi load_token
 
 # Setup logging
 logging.basicConfig(
@@ -11,20 +10,13 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-# Ambil ENV
+# Ambil ENV dari Railway
 API_ID = int(os.getenv("API_ID"))
 API_HASH = os.getenv("API_HASH")
-SESSION = os.getenv("SESSION")
+BOT_TOKEN = os.getenv("BOT_TOKEN")  # kalau pakai bot
+SESSION = os.getenv("SESSION")      # kalau pakai userbot
 
-logging.info("🔍 Cek token dari .addbot ...")
-BOT_TOKEN = load_token()
-
-# Simpan BOT_TOKEN ke .env supaya survive restart
-if BOT_TOKEN and not os.getenv("BOT_TOKEN"):
-    with open(".env", "a") as f:
-        f.write(f"\nBOT_TOKEN={BOT_TOKEN}\n")
-    os.environ["BOT_TOKEN"] = BOT_TOKEN
-
+# Tentukan mode
 if BOT_TOKEN:
     logging.info("🤖 Bullove BOT starting...")
     client = TelegramClient("bot_session", API_ID, API_HASH).start(bot_token=BOT_TOKEN)
@@ -36,27 +28,16 @@ else:
 async def main():
     from tools import get_owner_id, check_mode
 
+    # Cek identitas owner
     try:
-        logging.info("🔍 Mendapatkan owner id ...")
         owner_id, owner_name = await get_owner_id(client)
         logging.info(f"ℹ️ OWNER_ID otomatis diset ke: {owner_id} ({owner_name})")
     except Exception as e:
         logging.error(f"❌ Gagal mendapatkan owner id: {e}", exc_info=True)
-        return
 
-    try:
-        mode = check_mode(client)
-        logging.info(f"🔧 Mode berjalan: {mode}")
-    except Exception as e:
-        logging.error(f"❌ Gagal cek mode: {e}", exc_info=True)
-        mode = "UNKNOWN"
-
-    # Kirim notifikasi startup ke owner
-    try:
-        await client.send_message(owner_id, f"✅ Bullove aktif kembali\nMode: {mode}\nOwner: {owner_name}")
-        logging.info("📩 Notifikasi startup dikirim ke owner")
-    except Exception as e:
-        logging.error(f"❌ Gagal kirim notifikasi startup: {e}", exc_info=True)
+    # Cek mode
+    mode = check_mode(client)
+    logging.info(f"🔧 Mode berjalan: {mode}")
 
     # Auto load semua file di folder "perintah"
     logging.info("📂 Mulai load perintah...")
