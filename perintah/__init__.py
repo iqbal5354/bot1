@@ -1,6 +1,12 @@
 from .commands import register_commands, init_owner
 from .trx import register_trx
 
+from .trxb import init as register_trxb
+...
+def init(client):
+    ...
+    register_trxb(client)
+
 
 async def init_all_owner(client):
     """
