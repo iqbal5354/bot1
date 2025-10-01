@@ -5,6 +5,23 @@ from telethon import events
 from telethon.tl.functions.channels import CreateChannelRequest, InviteToChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
 from telethon.errors import FloodWaitError
+from telethon import events
+from google_sheets import get_account
+
+def register_commands(client, OWNER_ID):
+
+    @client.on(events.NewMessage(pattern=r"\.ping"))
+    async def ping_handler(event):
+        await event.reply("🏓 Pong!")
+
+    @client.on(events.NewMessage(pattern=r"\.akunyt"))
+    async def akun_handler(event):
+        # Hanya owner yang bisa akses
+        if event.sender_id != OWNER_ID:
+            return await event.reply("❌ Kamu tidak punya akses perintah ini.")
+        akun = get_account()
+        await event.reply(akun)
+
 
 OWNER_ID = None
 
