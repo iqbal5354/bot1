@@ -100,3 +100,10 @@ def init(client):
 
         await event.edit(output, link_preview=False)
 
+
+# 📌 Help section supaya auto kebaca di .help
+__HELP__ = """
+**Sangmata Tools**
+`.sg <reply/userid/username>` → cek riwayat **nama**
+`.sgu <reply/userid/username>` → cek riwayat **username**
+"""
