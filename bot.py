@@ -1,6 +1,7 @@
 import os
 import sys
 import asyncio
+import time
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from telethon.tl.functions.channels import CreateChannelRequest
@@ -60,6 +61,16 @@ def progress_bar(current, total, length=20):
     return f"[{bar}] {current}/{total}"
 
 
+# 🔹 Command .ping → cek respon bot
+@client.on(events.NewMessage(pattern=r"^\.ping$"))
+async def handler_ping(event):
+    start = time.perf_counter()
+    msg = await event.respond("🏓 Pong...")
+    end = time.perf_counter()
+    ping_ms = int((end - start) * 1000)
+    await msg.edit(f"🏓 Pong!\n⏱ {ping_ms} ms")
+
+
 # 🔹 Command .id → cek ID grup/channel
 @client.on(events.NewMessage(pattern=r"^\.id$"))
 async def handler_id(event):
@@ -75,13 +86,13 @@ async def handler_id(event):
 
 
 # 🔹 Command .buat → buat grup/channel dengan progress bar
-@client.on(events.NewMessage(pattern=r"^\.buat (b|g|c) (\d+) (.+)"))
+@client.on(events.NewMessage(pattern=r"^\.buat (b|g|c)(?: (\d+))? (.+)"))
 async def handler_buat(event):
     if event.sender_id != OWNER_ID:
         return
 
     jenis = event.pattern_match.group(1)
-    jumlah = int(event.pattern_match.group(2))
+    jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
     nama = event.pattern_match.group(3)
 
     await event.delete()
