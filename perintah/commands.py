@@ -1,3 +1,13 @@
+import sys
+import os
+import time
+import asyncio
+import random
+from telethon import events
+from telethon.tl.functions.channels import CreateChannelRequest
+from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
+from telethon.errors import FloodWaitError
+
 HELP = {
     "utility": [
         ".ping → cek respon bot",
@@ -6,18 +16,42 @@ HELP = {
     ]
 }
 
-# commands.py
-
-import sys
-import os
-import time
-import asyncio
-from telethon import events
-from telethon.tl.functions.channels import CreateChannelRequest
-from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
-from telethon.errors import FloodWaitError
-
 OWNER_ID = None
+
+# === RANDOM MESSAGES ===
+RANDOM_MESSAGES = [
+    "Hari ini penuh kejutan, semoga energi positif selalu hadir di setiap langkah yang kita jalani bersama di sini.",
+    "Grup ini dibuat untuk berbagi cerita, pengalaman, dan tawa yang bisa menghibur kita semua setiap hari tanpa henti.",
+    "Kebersamaan adalah kunci, mari kita bangun komunitas ini dengan saling menghargai dan memberi semangat positif.",
+    "Semoga tempat ini jadi ruang yang nyaman untuk berdiskusi, bercanda, dan saling menguatkan satu sama lain setiap waktu.",
+    "Jangan sungkan untuk berbagi ide, opini, maupun hal-hal kecil yang bisa bikin suasana grup jadi lebih hidup.",
+    "Hidup terlalu singkat untuk saling diam, mari kita manfaatkan kesempatan ini untuk saling menyapa dan berteman baik.",
+    "Setiap orang punya cerita unik, semoga grup ini bisa jadi wadah untuk kita saling mengenal lebih dalam lagi.",
+    "Selamat datang di rumah baru kita, mari isi ruang ini dengan candaan, obrolan hangat, dan juga semangat positif.",
+    "Tidak ada pertemuan yang kebetulan, semoga kita bisa menjadikan tempat ini penuh manfaat dan pengalaman berharga.",
+    "Bersama kita bisa membangun lingkungan yang lebih menyenangkan, penuh tawa, dan saling mendukung setiap anggota.",
+    "Grup ini terbuka untuk siapa saja yang ingin berbagi pikiran, cerita lucu, atau sekadar menyapa dengan ramah.",
+    "Setiap kata yang kita bagikan bisa jadi energi positif bagi orang lain, jadi mari sebarkan hal baik di sini.",
+    "Terima kasih sudah menjadi bagian dari perjalanan ini, semoga grup ini bisa memberi kesan yang menyenangkan.",
+    "Mari gunakan ruang ini untuk mengekspresikan diri, tanpa rasa takut, dengan penuh kebebasan dan kebersamaan.",
+    "Tak peduli seberapa jauh jarak memisahkan, semoga grup ini bisa jadi penghubung persahabatan yang hangat.",
+    "Hidup lebih indah kalau dibagi bersama, mari kita jadikan grup ini tempat untuk saling berbagi kebahagiaan.",
+    "Kita semua punya tujuan berbeda, tapi mari kita satukan semangat agar ruang ini bermanfaat dan menyenangkan.",
+    "Jangan malu untuk aktif, semakin banyak obrolan semakin hangat suasana yang bisa kita rasakan bersama-sama.",
+    "Obrolan santai, diskusi serius, atau sekadar bercanda, semuanya bisa hidup di sini dengan sikap saling menghargai.",
+    "Setiap awal pasti punya cerita baru, semoga grup ini jadi awal dari kisah-kisah seru yang akan kita jalani.",
+    "Mari kita isi hari-hari dengan cerita menarik, canda, tawa, dan kehangatan yang bisa menyemangati semuanya.",
+    "Setiap anggota adalah bagian penting, mari kita saling dukung agar grup ini tumbuh jadi komunitas yang solid.",
+    "Jangan ragu untuk menyapa, satu pesan kecil bisa membuka obrolan panjang yang bikin kita makin akrab.",
+    "Semoga grup ini bisa jadi tempat bertukar pikiran yang sehat, menyenangkan, dan penuh hal positif setiap hari.",
+    "Tidak ada kata bosan kalau kita bisa saling menghibur, semoga grup ini jadi ruang untuk tawa yang menyegarkan.",
+    "Mari hargai setiap perbedaan, karena perbedaanlah yang membuat grup ini lebih berwarna dan penuh makna.",
+    "Tak ada batasan untuk berbagi cerita, semoga setiap percakapan bisa membawa kebahagiaan bagi kita semua.",
+    "Komunitas ini tercipta karena rasa ingin bersama, mari kita jaga suasana tetap hangat dan penuh keceriaan.",
+    "Obrolan sederhana kadang bisa jadi kenangan indah, semoga grup ini menyimpan banyak kisah yang kita kenang.",
+    "Selamat datang di awal perjalanan, semoga kita semua betah berada di sini dan aktif berbagi cerita seru."
+]
+
 
 # === OWNER INIT ===
 async def init_owner(client):
@@ -36,6 +70,7 @@ def progress_bar(current, total, length=20):
     filled = int(length * current // total)
     bar = "█" * filled + "▒" * (length - filled)
     return f"[{bar}] {current}/{total}"
+
 
 async def animate_loading(msg, text, delay=0.3):
     frames = ["⏳", "⌛", "🔄", "🌀", "⚙️"]
@@ -56,7 +91,6 @@ def register_commands(client):
         ping_ms = int((end - start) * 1000)
         await event.edit(f"🏓 Pong!\n⏱ {ping_ms} ms")
 
-
     # 📌 .id
     @client.on(events.NewMessage(pattern=r"^\.id$"))
     async def handler_id(event):
@@ -72,9 +106,7 @@ def register_commands(client):
         if event.sender_id != OWNER_ID:
             return
 
-        # 🔹 hapus command asli
-        await event.delete()
-
+        await event.delete()  # hapus command asli
         jenis = event.pattern_match.group(1)
         jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
         nama = event.pattern_match.group(3)
@@ -86,7 +118,6 @@ def register_commands(client):
             for i in range(1, jumlah + 1):
                 nama_group = f"{nama} {i}" if jumlah > 1 else nama
 
-                # animasi per step
                 await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
 
                 if jenis == "b":
@@ -103,8 +134,19 @@ def register_commands(client):
                     ))
                     chat_id = r.chats[0].id
 
+                # link undangan
                 link = (await client(ExportChatInviteRequest(chat_id))).link
                 hasil.append(f"✅ [{nama_group}]({link})")
+
+                # 🔹 kirim 4 pesan random otomatis
+                for _ in range(4):
+                    pesan = random.choice(RANDOM_MESSAGES)
+                    try:
+                        await client.send_message(chat_id, pesan)
+                        await asyncio.sleep(1)
+                    except FloodWaitError as fw:
+                        await asyncio.sleep(fw.seconds)
+                        await client.send_message(chat_id, pesan)
 
                 bar = progress_bar(i, jumlah)
                 await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
