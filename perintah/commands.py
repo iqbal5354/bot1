@@ -9,8 +9,7 @@ from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRe
 from telethon.errors import FloodWaitError
 
 # ✅ Import pesan random dari file terpisah
-from random_messages import RANDOM_MESSAGES
-
+from .random_messages import RANDOM_MESSAGES
 HELP = {
     "utility": [
         ".ping → cek respon bot",
