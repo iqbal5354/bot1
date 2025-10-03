@@ -42,13 +42,6 @@ def progress_bar(current, total, length=20):
     return f"[{bar}] {current}/{total}"
 
 
-async def animate_loading(msg, text, delay=0.3):
-    frames = ["⏳", "⌛", "🔄", "🌀", "⚙️"]
-    for frame in frames:
-        await msg.edit(f"{frame} {text}")
-        await asyncio.sleep(delay)
-
-
 # === COMMANDS ===
 def register_commands(client):
 
@@ -141,7 +134,6 @@ async def mulai_buat(client, event, session, auto_count):
     try:
         for i in range(1, jumlah + 1):
             nama_group = f"{nama} {i}" if jumlah > 1 else nama
-            await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
 
             try:
                 if jenis == "b":
@@ -177,8 +169,9 @@ async def mulai_buat(client, event, session, auto_count):
                 hasil.append(f"❌ {nama_group} (error: {e})")
                 gagal += 1
 
+            # 🔹 progress bar update (tanpa animasi loading)
             bar = progress_bar(i, jumlah)
-            await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
+            await msg.edit(f"🔄 Membuat {nama_group} ({i}/{jumlah})\n{bar}")
 
     except FloodWaitError as e:
         gagal = jumlah - sukses
