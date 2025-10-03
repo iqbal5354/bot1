@@ -74,13 +74,14 @@ def register_commands(client):
         jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
         nama = event.pattern_match.group(3)
 
-        # simpan session + pertanyaan
+        # simpan session + pertanyaan pertama
         tanya = await event.respond("❓ Apakah ingin mengirim pesan otomatis ke grup/channel? (Y/N)")
         buat_sessions[event.sender_id] = {
             "jenis": jenis,
             "jumlah": jumlah,
             "nama": nama,
-            "tanya_msg": tanya
+            "tanya_msg": tanya,
+            "tanya_msg2": None
         }
 
     # 📌 respon interaktif setelah .buat
@@ -95,7 +96,8 @@ def register_commands(client):
         if "auto_msg" not in session:
             if event.raw_text.strip().upper() == "Y":
                 session["auto_msg"] = True
-                await event.reply("📩 Berapa jumlah pesan otomatis yang ingin dikirim? (contoh: 5)")
+                tanya2 = await event.reply("📩 Berapa jumlah pesan otomatis yang ingin dikirim? (contoh: 5)")
+                session["tanya_msg2"] = tanya2
                 await event.delete()
                 return
 
@@ -169,7 +171,7 @@ async def mulai_buat(client, event, session, auto_count):
                 hasil.append(f"❌ {nama_group} (error: {e})")
                 gagal += 1
 
-            # 🔹 progress bar update (tanpa animasi loading)
+            # 🔹 progress bar update
             bar = progress_bar(i, jumlah)
             await msg.edit(f"🔄 Membuat {nama_group} ({i}/{jumlah})\n{bar}")
 
@@ -199,13 +201,13 @@ async def mulai_buat(client, event, session, auto_count):
         link_preview=False
     )
 
-    # 🔹 hapus pertanyaan awal setelah selesai
-    tanya_msg = session.get("tanya_msg")
-    if tanya_msg:
-        try:
-            await tanya_msg.delete()
-        except:
-            pass
+    # 🔹 hapus pertanyaan awal & kedua setelah selesai
+    for tanya_msg in (session.get("tanya_msg"), session.get("tanya_msg2")):
+        if tanya_msg:
+            try:
+                await tanya_msg.delete()
+            except:
+                pass
 
 
 # 📌 .restart
