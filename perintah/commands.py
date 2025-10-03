@@ -8,6 +8,9 @@ from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
 from telethon.errors import FloodWaitError
 
+# ✅ Import pesan random dari file terpisah
+from random_messages import RANDOM_MESSAGES
+
 HELP = {
     "utility": [
         ".ping → cek respon bot",
@@ -17,40 +20,7 @@ HELP = {
 }
 
 OWNER_ID = None
-
-# === RANDOM MESSAGES ===
-RANDOM_MESSAGES = [
-    "Hari ini penuh kejutan, semoga energi positif selalu hadir di setiap langkah yang kita jalani bersama di sini.",
-    "Grup ini dibuat untuk berbagi cerita, pengalaman, dan tawa yang bisa menghibur kita semua setiap hari tanpa henti.",
-    "Kebersamaan adalah kunci, mari kita bangun komunitas ini dengan saling menghargai dan memberi semangat positif.",
-    "Semoga tempat ini jadi ruang yang nyaman untuk berdiskusi, bercanda, dan saling menguatkan satu sama lain setiap waktu.",
-    "Jangan sungkan untuk berbagi ide, opini, maupun hal-hal kecil yang bisa bikin suasana grup jadi lebih hidup.",
-    "Hidup terlalu singkat untuk saling diam, mari kita manfaatkan kesempatan ini untuk saling menyapa dan berteman baik.",
-    "Setiap orang punya cerita unik, semoga grup ini bisa jadi wadah untuk kita saling mengenal lebih dalam lagi.",
-    "Selamat datang di rumah baru kita, mari isi ruang ini dengan candaan, obrolan hangat, dan juga semangat positif.",
-    "Tidak ada pertemuan yang kebetulan, semoga kita bisa menjadikan tempat ini penuh manfaat dan pengalaman berharga.",
-    "Bersama kita bisa membangun lingkungan yang lebih menyenangkan, penuh tawa, dan saling mendukung setiap anggota.",
-    "Grup ini terbuka untuk siapa saja yang ingin berbagi pikiran, cerita lucu, atau sekadar menyapa dengan ramah.",
-    "Setiap kata yang kita bagikan bisa jadi energi positif bagi orang lain, jadi mari sebarkan hal baik di sini.",
-    "Terima kasih sudah menjadi bagian dari perjalanan ini, semoga grup ini bisa memberi kesan yang menyenangkan.",
-    "Mari gunakan ruang ini untuk mengekspresikan diri, tanpa rasa takut, dengan penuh kebebasan dan kebersamaan.",
-    "Tak peduli seberapa jauh jarak memisahkan, semoga grup ini bisa jadi penghubung persahabatan yang hangat.",
-    "Hidup lebih indah kalau dibagi bersama, mari kita jadikan grup ini tempat untuk saling berbagi kebahagiaan.",
-    "Kita semua punya tujuan berbeda, tapi mari kita satukan semangat agar ruang ini bermanfaat dan menyenangkan.",
-    "Jangan malu untuk aktif, semakin banyak obrolan semakin hangat suasana yang bisa kita rasakan bersama-sama.",
-    "Obrolan santai, diskusi serius, atau sekadar bercanda, semuanya bisa hidup di sini dengan sikap saling menghargai.",
-    "Setiap awal pasti punya cerita baru, semoga grup ini jadi awal dari kisah-kisah seru yang akan kita jalani.",
-    "Mari kita isi hari-hari dengan cerita menarik, canda, tawa, dan kehangatan yang bisa menyemangati semuanya.",
-    "Setiap anggota adalah bagian penting, mari kita saling dukung agar grup ini tumbuh jadi komunitas yang solid.",
-    "Jangan ragu untuk menyapa, satu pesan kecil bisa membuka obrolan panjang yang bikin kita makin akrab.",
-    "Semoga grup ini bisa jadi tempat bertukar pikiran yang sehat, menyenangkan, dan penuh hal positif setiap hari.",
-    "Tidak ada kata bosan kalau kita bisa saling menghibur, semoga grup ini jadi ruang untuk tawa yang menyegarkan.",
-    "Mari hargai setiap perbedaan, karena perbedaanlah yang membuat grup ini lebih berwarna dan penuh makna.",
-    "Tak ada batasan untuk berbagi cerita, semoga setiap percakapan bisa membawa kebahagiaan bagi kita semua.",
-    "Komunitas ini tercipta karena rasa ingin bersama, mari kita jaga suasana tetap hangat dan penuh keceriaan.",
-    "Obrolan sederhana kadang bisa jadi kenangan indah, semoga grup ini menyimpan banyak kisah yang kita kenang.",
-    "Selamat datang di awal perjalanan, semoga kita semua betah berada di sini dan aktif berbagi cerita seru."
-]
+buat_sessions = {}  # simpan sementara session untuk interaktif
 
 
 # === OWNER INIT ===
@@ -106,40 +76,83 @@ def register_commands(client):
         if event.sender_id != OWNER_ID:
             return
 
-        await event.delete()  # hapus command asli
+        await event.delete()
         jenis = event.pattern_match.group(1)
         jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
         nama = event.pattern_match.group(3)
 
-        msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
+        # simpan session
+        buat_sessions[event.sender_id] = {"jenis": jenis, "jumlah": jumlah, "nama": nama}
+        await event.respond("❓ Apakah ingin mengirim pesan otomatis ke grup/channel? (Y/N)")
 
-        try:
-            hasil = []
-            for i in range(1, jumlah + 1):
-                nama_group = f"{nama} {i}" if jumlah > 1 else nama
+    # 📌 respon interaktif setelah .buat
+    @client.on(events.NewMessage())
+    async def handler_interaktif(event):
+        if event.sender_id != OWNER_ID or event.sender_id not in buat_sessions:
+            return
 
-                await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
+        session = buat_sessions[event.sender_id]
 
-                if jenis == "b":
-                    r = await client(CreateChatRequest(
-                        users=[await client.get_me()],
-                        title=nama_group,
-                    ))
-                    chat_id = r.chats[0].id
-                else:
-                    r = await client(CreateChannelRequest(
-                        title=nama_group,
-                        about="GRUB BY @WARUNGBULLOVE",
-                        megagroup=(jenis == "g"),
-                    ))
-                    chat_id = r.chats[0].id
+        # jawaban Y/N
+        if "auto_msg" not in session:
+            if event.raw_text.strip().upper() == "Y":
+                session["auto_msg"] = True
+                await event.reply("📩 Berapa jumlah pesan otomatis yang ingin dikirim? (contoh: 5)")
+            elif event.raw_text.strip().upper() == "N":
+                session["auto_msg"] = False
+                await mulai_buat(client, event, session, 0)
+                del buat_sessions[event.sender_id]
+            await event.delete()
+            return
 
-                # link undangan
-                link = (await client(ExportChatInviteRequest(chat_id))).link
-                hasil.append(f"✅ [{nama_group}]({link})")
+        # jumlah pesan otomatis
+        if session["auto_msg"] and "auto_count" not in session:
+            try:
+                count = int(event.raw_text.strip())
+                if count < 1:
+                    count = 1
+                elif count > 10:
+                    count = 10
+                session["auto_count"] = count
+                await mulai_buat(client, event, session, count)
+            except ValueError:
+                await event.reply("⚠️ Masukkan angka yang valid (1-10).")
+            del buat_sessions[event.sender_id]
+            await event.delete()
 
-                # 🔹 kirim 4 pesan random otomatis
-                for _ in range(4):
+
+# === Proses utama buat grup/channel ===
+async def mulai_buat(client, event, session, auto_count):
+    jenis, jumlah, nama = session["jenis"], session["jumlah"], session["nama"]
+    msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
+
+    try:
+        hasil = []
+        for i in range(1, jumlah + 1):
+            nama_group = f"{nama} {i}" if jumlah > 1 else nama
+
+            await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
+
+            if jenis == "b":
+                r = await client(CreateChatRequest(
+                    users=[await client.get_me()],
+                    title=nama_group,
+                ))
+                chat_id = r.chats[0].id
+            else:
+                r = await client(CreateChannelRequest(
+                    title=nama_group,
+                    about="GRUB BY @WARUNGBULLOVE",
+                    megagroup=(jenis == "g"),
+                ))
+                chat_id = r.chats[0].id
+
+            link = (await client(ExportChatInviteRequest(chat_id))).link
+            hasil.append(f"✅ [{nama_group}]({link})")
+
+            # 🔹 pesan otomatis jika Y
+            if auto_count > 0:
+                for _ in range(auto_count):
                     pesan = random.choice(RANDOM_MESSAGES)
                     try:
                         await client.send_message(chat_id, pesan)
@@ -148,17 +161,18 @@ def register_commands(client):
                         await asyncio.sleep(fw.seconds)
                         await client.send_message(chat_id, pesan)
 
-                bar = progress_bar(i, jumlah)
-                await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
+            bar = progress_bar(i, jumlah)
+            await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
 
-            await msg.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
+        await msg.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
 
-        except FloodWaitError as e:
-            await msg.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
-        except Exception as e:
-            await msg.edit(f"❌ Error: {str(e)}")
+    except FloodWaitError as e:
+        await msg.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
+    except Exception as e:
+        await msg.edit(f"❌ Error: {str(e)}")
 
-    # 📌 .restart
+
+# 📌 .restart
     @client.on(events.NewMessage(pattern=r"^\.restart$"))
     async def handler_restart(event):
         if event.sender_id != OWNER_ID:
