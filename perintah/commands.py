@@ -81,9 +81,14 @@ def register_commands(client):
         jumlah = int(event.pattern_match.group(2)) if event.pattern_match.group(2) else 1
         nama = event.pattern_match.group(3)
 
-        # simpan session
-        buat_sessions[event.sender_id] = {"jenis": jenis, "jumlah": jumlah, "nama": nama}
-        await event.respond("❓ Apakah ingin mengirim pesan otomatis ke grup/channel? (Y/N)")
+        # simpan session + pertanyaan
+        tanya = await event.respond("❓ Apakah ingin mengirim pesan otomatis ke grup/channel? (Y/N)")
+        buat_sessions[event.sender_id] = {
+            "jenis": jenis,
+            "jumlah": jumlah,
+            "nama": nama,
+            "tanya_msg": tanya
+        }
 
     # 📌 respon interaktif setelah .buat
     @client.on(events.NewMessage())
@@ -98,15 +103,18 @@ def register_commands(client):
             if event.raw_text.strip().upper() == "Y":
                 session["auto_msg"] = True
                 await event.reply("📩 Berapa jumlah pesan otomatis yang ingin dikirim? (contoh: 5)")
+                await event.delete()
+                return
+
             elif event.raw_text.strip().upper() == "N":
                 session["auto_msg"] = False
                 await mulai_buat(client, event, session, 0)
                 del buat_sessions[event.sender_id]
-            await event.delete()
-            return
+                await event.delete()
+                return
 
         # jumlah pesan otomatis
-        if session["auto_msg"] and "auto_count" not in session:
+        if session.get("auto_msg") and "auto_count" not in session:
             try:
                 count = int(event.raw_text.strip())
                 if count < 1:
@@ -115,9 +123,9 @@ def register_commands(client):
                     count = 10
                 session["auto_count"] = count
                 await mulai_buat(client, event, session, count)
+                del buat_sessions[event.sender_id]
             except ValueError:
                 await event.reply("⚠️ Masukkan angka yang valid (1-10).")
-            del buat_sessions[event.sender_id]
             await event.delete()
 
 
@@ -197,6 +205,14 @@ async def mulai_buat(client, event, session, auto_count):
         "🎉 Grup/Channel selesai dibuat:\n\n" + "\n".join(hasil) + "\n\n" + detail,
         link_preview=False
     )
+
+    # 🔹 hapus pertanyaan awal setelah selesai
+    tanya_msg = session.get("tanya_msg")
+    if tanya_msg:
+        try:
+            await tanya_msg.delete()
+        except:
+            pass
 
 
 # 📌 .restart
