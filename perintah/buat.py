@@ -1,97 +1,127 @@
-from telethon import events
-from datetime import datetime
 import asyncio
+import random
+import datetime
+from telethon import events
+from telethon.tl.functions.channels import CreateChannelRequest
+from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
+from telethon.errors import FloodWaitError
 
-OWNER_ID = 123456789  # ganti dengan ID kamu
+from .random_messages import RANDOM_MESSAGES
 
-@client.on(events.NewMessage(pattern=r"^\.gas$"))
-async def handler_gas(event):
-    if event.sender_id != OWNER_ID:
-        return
+OWNER_ID = None
 
-    try:
-        async with client.conversation(event.chat_id, timeout=5) as conv:
-            # 1. pilih jenis
-            await conv.send_message("Mau grub atau channel? (ketik g/c)")
-            jenis = (await conv.get_response()).raw_text.strip().lower()
+async def init_owner(client):
+    global OWNER_ID
+    me = await client.get_me()
+    OWNER_ID = me.id
 
-            # 2. jumlah
-            await conv.send_message("Jumlah yang akan dibuat berapa?")
-            jumlah = int((await conv.get_response()).raw_text.strip())
-
-            # 3. nama
-            await conv.send_message("Nama grub apa?")
-            nama = (await conv.get_response()).raw_text.strip()
-
-            # 4. pesan otomatis?
-            await conv.send_message("Apakah ingin mengirim pesan otomatis ke grup/channel? (Y/N)")
-            auto = (await conv.get_response()).raw_text.strip().lower()
-
-            pesan_jumlah = 0
-            if auto == "y":
-                await conv.send_message("Berapa pesan otomatis yang ingin dikirim?")
-                pesan_jumlah = int((await conv.get_response()).raw_text.strip())
-
-    except asyncio.TimeoutError:
-        await event.respond("⏰ Waktu habis! Kamu tidak menjawab dalam 5 detik.")
-        return
-
-    # mulai eksekusi bikin grup/channel
-    berhasil = 0
-    gagal = 0
-
-    for i in range(jumlah):
-        try:
-            if jenis == "g":  # bikin grup
-                result = await client(functions.messages.CreateChatRequest(
-                    users=[event.sender_id],
-                    title=f"{nama} {i+1}"
-                ))
-            elif jenis == "c":  # bikin channel
-                result = await client(functions.channels.CreateChannelRequest(
-                    title=f"{nama} {i+1}",
-                    about="Channel otomatis",
-                    megagroup=False
-                ))
-            else:
-                await event.respond("❌ Jenis tidak valid, hanya bisa g/c.")
-                return
-
-            berhasil += 1
-
-            # kalau ada pesan otomatis
-            if auto == "y" and pesan_jumlah > 0:
-                for x in range(pesan_jumlah):
-                    await client.send_message(result.chats[0].id, f"Pesan otomatis ke-{x+1}")
-
-        except Exception:
-            gagal += 1
-
-    # ambil detail waktu
-    now = datetime.now()
+def format_detail(success, failed):
+    now = datetime.datetime.now()
     hari = now.strftime("%A")
     jam = now.strftime("%H:%M:%S")
     tanggal = now.strftime("%d %B %Y")
 
-    # hasil akhir
-    if gagal == 0:
-        detail = f"""
-🕒 Detail:
-- jumlah berhasil di buat : {berhasil}
-- jumlah gagal di buat : {gagal}
+    return (
+        f"\n🕒 Detail:\n"
+        f"- jumlah berhasil di buat : {success}\n"
+        f"- jumlah gagal di buat    : {failed}\n\n"
+        f"- Hari   : {hari}\n"
+        f"- Jam    : {jam}\n"
+        f"- Tanggal: {tanggal}"
+    )
 
-- Hari   : {hari}
-- Jam    : {jam}
-- Tanggal: {tanggal}
-"""
-    else:
-        detail = f"""
-🕒 Detail:
-- jumlah berhasil di buat : {berhasil}
+def init(client):
 
-- Hari   : {hari}
-- Jam    : {jam}
-- Tanggal: {tanggal}
-"""
+    @client.on(events.NewMessage(pattern=r"^\.gas$"))
+    async def handler_gas(event):
+        if event.sender_id != OWNER_ID:
+            return
 
-    await event.respond(f"✅ Selesai!\n{detail}")
+        await event.delete()
+        chat = await event.get_chat()
+        hasil = []
+        sukses, gagal = 0, 0
+
+        async with client.conversation(chat.id, exclusive=True) as conv:
+            try:
+                await conv.send_message("🚀 Pembuatan baru dimulai...\nMau **Grub** atau **Channel**?\nKetik `g` untuk grub / `c` untuk channel")
+                jenis = (await conv.get_response(timeout=30)).raw_text.strip().lower()
+            except asyncio.TimeoutError:
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                return
+
+            try:
+                await conv.send_message("📌 Jumlah yang akan dibuat berapa?")
+                jumlah = int((await conv.get_response(timeout=30)).raw_text.strip())
+            except asyncio.TimeoutError:
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                return
+
+            try:
+                await conv.send_message("📌 Nama grup/channel apa?")
+                nama = (await conv.get_response(timeout=30)).raw_text.strip()
+            except asyncio.TimeoutError:
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                return
+
+            try:
+                await conv.send_message("❓ Apakah ingin ada pesan otomatis? (Y/N)")
+                auto_pesan = (await conv.get_response(timeout=30)).raw_text.strip().lower()
+            except asyncio.TimeoutError:
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                return
+
+            jumlah_pesan = 0
+            if auto_pesan == "y":
+                try:
+                    await conv.send_message("✉️ Berapa jumlah pesan otomatis?")
+                    jumlah_pesan = int((await conv.get_response(timeout=30)).raw_text.strip())
+                except asyncio.TimeoutError:
+                    await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                    return
+
+        # Status sementara
+        status_msg = await client.send_message(chat.id, "⏳ Membuat grup/channel...")
+
+        # Buat grup/channel
+        for i in range(1, jumlah + 1):
+            nama_group = f"{nama} {i}" if jumlah > 1 else nama
+            try:
+                if jenis == "g":
+                    r = await client(CreateChatRequest(
+                        users=[await client.get_me()],
+                        title=nama_group,
+                    ))
+                    chat_id = r.chats[0].id
+                else:
+                    r = await client(CreateChannelRequest(
+                        title=nama_group,
+                        about="Dibuat otomatis oleh bot",
+                        megagroup=(jenis == "g"),
+                    ))
+                    chat_id = r.chats[0].id
+
+                link = (await client(ExportChatInviteRequest(chat_id))).link
+                hasil.append(f"✅ [{nama_group}]({link})")
+                sukses += 1
+
+                # Pesan otomatis
+                if jumlah_pesan > 0:
+                    for _ in range(jumlah_pesan):
+                        pesan = random.choice(RANDOM_MESSAGES)
+                        try:
+                            await client.send_message(chat_id, pesan)
+                            await asyncio.sleep(1)
+                        except FloodWaitError as fw:
+                            await asyncio.sleep(fw.seconds)
+                            await client.send_message(chat_id, pesan)
+
+            except Exception as e:
+                hasil.append(f"⚠️ {nama_group} gagal dibuat ({str(e)})")
+                gagal += 1
+
+        # Edit status ke hasil akhir
+        await status_msg.edit(
+            "🎉 Hasil Pembuatan:\n\n" + "\n".join(hasil) + format_detail(sukses, gagal),
+            link_preview=False,
+        )
