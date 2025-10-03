@@ -18,7 +18,7 @@ async def init_owner(client):
     global OWNER_ID
     me = await client.get_me()
     OWNER_ID = me.id
-    logging.info(f"OWNER_ID di-set ke {OWNER_ID}")
+    logging.info(f"OWNER_ID diinisialisasi: {OWNER_ID}")
 
 def format_detail(success, failed):
     now = datetime.datetime.now()
@@ -26,23 +26,14 @@ def format_detail(success, failed):
     jam = now.strftime("%H:%M:%S")
     tanggal = now.strftime("%d %B %Y")
 
-    if failed > 0:
-        return (
-            f"\n🕒 Detail:\n"
-            f"- jumlah berhasil di buat : {success}\n\n"
-            f"- Hari   : {hari}\n"
-            f"- Jam    : {jam}\n"
-            f"- Tanggal: {tanggal}"
-        )
-    else:
-        return (
-            f"\n🕒 Detail:\n"
-            f"- jumlah berhasil di buat : {success}\n"
-            f"- jumlah gagal di buat : {failed}\n\n"
-            f"- Hari   : {hari}\n"
-            f"- Jam    : {jam}\n"
-            f"- Tanggal: {tanggal}"
-        )
+    return (
+        f"\n🕒 Detail:\n"
+        f"- jumlah berhasil di buat : {success}\n"
+        f"- jumlah gagal di buat : {failed}\n\n"
+        f"- Hari   : {hari}\n"
+        f"- Jam    : {jam}\n"
+        f"- Tanggal: {tanggal}"
+    )
 
 def init(client):
 
@@ -94,7 +85,6 @@ def init(client):
 
         except asyncio.TimeoutError:
             await client.send_message(chat.id, "❌ Gagal dijalankan karena waktu habis.")
-            logging.error("Timeout: Tidak ada respon dari user")
             return
 
         # Status sementara
@@ -109,22 +99,22 @@ def init(client):
                         users=[await client.get_me()],
                         title=nama_group,
                     ))
-                    # FIX: CreateChatRequest return InvitedUsers, ambil chat_id dengan cara ini
-                    chat_id = r.chats[0].id
-                    logging.info(f"Grup berhasil dibuat: {nama_group} (id={chat_id})")
-
+                    # FIX → CreateChatRequest tidak ada .chats → pakai get_entity
+                    new_chat = await client.get_entity(r.chats[0].id)
+                    chat_id = new_chat.id
                 else:
                     r = await client(CreateChannelRequest(
                         title=nama_group,
                         about="Dibuat otomatis oleh bot",
-                        megagroup=(jenis == "g"),
+                        megagroup=True,
                     ))
                     chat_id = r.chats[0].id
-                    logging.info(f"Channel berhasil dibuat: {nama_group} (id={chat_id})")
 
+                # Generate link undangan
                 link = (await client(ExportChatInviteRequest(chat_id))).link
                 hasil.append(f"✅ [{nama_group}]({link})")
                 sukses += 1
+                logging.info(f"Berhasil membuat: {nama_group} (id={chat_id})")
 
                 # Pesan otomatis
                 if jumlah_pesan > 0:
@@ -132,17 +122,17 @@ def init(client):
                         pesan = random.choice(RANDOM_MESSAGES)
                         try:
                             await client.send_message(chat_id, pesan)
+                            logging.info(f"Pesan otomatis terkirim ke {nama_group}: {pesan}")
                             await asyncio.sleep(1)
-                            logging.info(f"Pesan otomatis terkirim ke {nama_group}")
                         except FloodWaitError as fw:
-                            logging.warning(f"FloodWait {fw.seconds} detik, menunggu...")
+                            logging.warning(f"FloodWait {fw.seconds}s saat kirim pesan → sleep")
                             await asyncio.sleep(fw.seconds)
                             await client.send_message(chat_id, pesan)
 
             except Exception as e:
                 hasil.append(f"⚠️ {nama_group} gagal dibuat ({str(e)})")
                 gagal += 1
-                logging.error(f"Gagal membuat {nama_group}: {str(e)}")
+                logging.error(f"Gagal membuat {nama_group}: {e}")
 
         # Edit status ke hasil akhir
         await status_msg.edit(
