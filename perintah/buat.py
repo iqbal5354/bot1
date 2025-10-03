@@ -6,17 +6,15 @@ from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
 from telethon.errors import FloodWaitError
 
-from .random_messages import RANDOM_MESSAGES  # import pesan otomatis
+from .random_messages import RANDOM_MESSAGES
 
 OWNER_ID = None
 
-# === OWNER INIT ===
 async def init_owner(client):
     global OWNER_ID
     me = await client.get_me()
     OWNER_ID = me.id
 
-# === HELPERS ===
 def format_detail(success, failed):
     now = datetime.datetime.now()
     hari = now.strftime("%A")
@@ -41,56 +39,45 @@ def format_detail(success, failed):
             f"- Tanggal: {tanggal}"
         )
 
-# === COMMAND .buat ===
 def init(client):
 
     @client.on(events.NewMessage(pattern=r"^\.gas$"))
-    async def handler_buat(event):
+    async def handler_gas(event):
         if event.sender_id != OWNER_ID:
             return
 
-        # hapus command .buat
         await event.delete()
 
         chat = await event.get_chat()
-        input_msgs = []  # simpan semua jawaban user untuk nanti dihapus
-
-        # Step 1: Jenis grup atau channel
-        tanya1 = await client.send_message(chat.id, "🚀 Pembuatan baru dimulai...\nMau **Grub** atau **Channel**?\nKetik `g` untuk grub / `c` untuk channel")
-        response1 = await client.wait_for(events.NewMessage(from_users=OWNER_ID, chats=chat.id))
-        jenis = response1.raw_text.strip().lower()
-        input_msgs.append(response1.message)
-
-        # Step 2: Jumlah
-        tanya2 = await client.send_message(chat.id, "📌 Jumlah yang akan dibuat berapa?")
-        response2 = await client.wait_for(events.NewMessage(from_users=OWNER_ID, chats=chat.id))
-        jumlah = int(response2.raw_text.strip())
-        input_msgs.append(response2.message)
-
-        # Step 3: Nama
-        tanya3 = await client.send_message(chat.id, "📌 Nama grup/channel apa?")
-        response3 = await client.wait_for(events.NewMessage(from_users=OWNER_ID, chats=chat.id))
-        nama = response3.raw_text.strip()
-        input_msgs.append(response3.message)
-
-        # Step 4: Pesan otomatis Y/N
-        tanya4 = await client.send_message(chat.id, "❓ Apakah ingin ada pesan otomatis? (Y/N)")
-        response4 = await client.wait_for(events.NewMessage(from_users=OWNER_ID, chats=chat.id))
-        auto_pesan = response4.raw_text.strip().lower()
-        input_msgs.append(response4.message)
-
-        jumlah_pesan = 0
-        if auto_pesan == "y":
-            tanya5 = await client.send_message(chat.id, "✉️ Berapa jumlah pesan otomatis?")
-            response5 = await client.wait_for(events.NewMessage(from_users=OWNER_ID, chats=chat.id))
-            jumlah_pesan = int(response5.raw_text.strip())
-            input_msgs.append(response5.message)
-
         hasil = []
         sukses, gagal = 0, 0
 
+        async with client.conversation(chat.id, exclusive=True) as conv:
+            # Step 1: pilih jenis
+            await conv.send_message("🚀 Pembuatan baru dimulai...\nMau **Grub** atau **Channel**?\nKetik `g` untuk grub / `c` untuk channel")
+            jenis = (await conv.get_response()).raw_text.strip().lower()
+
+            # Step 2: jumlah
+            await conv.send_message("📌 Jumlah yang akan dibuat berapa?")
+            jumlah = int((await conv.get_response()).raw_text.strip())
+
+            # Step 3: nama
+            await conv.send_message("📌 Nama grup/channel apa?")
+            nama = (await conv.get_response()).raw_text.strip()
+
+            # Step 4: pesan otomatis
+            await conv.send_message("❓ Apakah ingin ada pesan otomatis? (Y/N)")
+            auto_pesan = (await conv.get_response()).raw_text.strip().lower()
+
+            jumlah_pesan = 0
+            if auto_pesan == "y":
+                await conv.send_message("✉️ Berapa jumlah pesan otomatis?")
+                jumlah_pesan = int((await conv.get_response()).raw_text.strip())
+
+        # Status sementara
         status_msg = await client.send_message(chat.id, "⏳ Membuat grup/channel...")
 
+        # Buat grup/channel
         for i in range(1, jumlah + 1):
             nama_group = f"{nama} {i}" if jumlah > 1 else nama
             try:
@@ -112,7 +99,7 @@ def init(client):
                 hasil.append(f"✅ [{nama_group}]({link})")
                 sukses += 1
 
-                # kirim pesan otomatis
+                # Pesan otomatis
                 if jumlah_pesan > 0:
                     for _ in range(jumlah_pesan):
                         pesan = random.choice(RANDOM_MESSAGES)
@@ -127,12 +114,8 @@ def init(client):
                 hasil.append(f"⚠️ {nama_group} gagal dibuat ({str(e)})")
                 gagal += 1
 
-        # hapus semua jawaban input user
-        for m in input_msgs:
-            try:
-                await m.delete()
-            except:
-                pass
-
-        # edit status jadi hasil akhir
-        await status_msg.edit("🎉 Hasil Pembuatan:\n\n" + "\n".join(hasil) + format_detail(sukses, gagal), link_preview=False)
+        # Edit status ke hasil akhir
+        await status_msg.edit(
+            "🎉 Hasil Pembuatan:\n\n" + "\n".join(hasil) + format_detail(sukses, gagal),
+            link_preview=False,
+        )
