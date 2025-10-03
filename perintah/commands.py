@@ -3,6 +3,7 @@ import os
 import time
 import asyncio
 import random
+from datetime import datetime
 from telethon import events
 from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
@@ -125,50 +126,77 @@ async def mulai_buat(client, event, session, auto_count):
     jenis, jumlah, nama = session["jenis"], session["jumlah"], session["nama"]
     msg = await event.respond("⏳ Menyiapkan pembuatan group/channel...")
 
+    hasil = []
+    sukses = 0
+    gagal = 0
+
     try:
-        hasil = []
         for i in range(1, jumlah + 1):
             nama_group = f"{nama} {i}" if jumlah > 1 else nama
-
             await animate_loading(msg, f"Membuat {nama_group} ({i}/{jumlah})")
 
-            if jenis == "b":
-                r = await client(CreateChatRequest(
-                    users=[await client.get_me()],
-                    title=nama_group,
-                ))
-                chat_id = r.chats[0].id
-            else:
-                r = await client(CreateChannelRequest(
-                    title=nama_group,
-                    about="GRUB BY @WARUNGBULLOVE",
-                    megagroup=(jenis == "g"),
-                ))
-                chat_id = r.chats[0].id
+            try:
+                if jenis == "b":
+                    r = await client(CreateChatRequest(
+                        users=[await client.get_me()],
+                        title=nama_group,
+                    ))
+                    chat_id = r.chats[0].id
+                else:
+                    r = await client(CreateChannelRequest(
+                        title=nama_group,
+                        about="GRUB BY @WARUNGBULLOVE",
+                        megagroup=(jenis == "g"),
+                    ))
+                    chat_id = r.chats[0].id
 
-            link = (await client(ExportChatInviteRequest(chat_id))).link
-            hasil.append(f"✅ [{nama_group}]({link})")
+                link = (await client(ExportChatInviteRequest(chat_id))).link
+                hasil.append(f"✅ [{nama_group}]({link})")
+                sukses += 1
 
-            # 🔹 pesan otomatis jika Y
-            if auto_count > 0:
-                for _ in range(auto_count):
-                    pesan = random.choice(RANDOM_MESSAGES)
-                    try:
-                        await client.send_message(chat_id, pesan)
-                        await asyncio.sleep(1)
-                    except FloodWaitError as fw:
-                        await asyncio.sleep(fw.seconds)
-                        await client.send_message(chat_id, pesan)
+                # 🔹 pesan otomatis jika Y
+                if auto_count > 0:
+                    for _ in range(auto_count):
+                        pesan = random.choice(RANDOM_MESSAGES)
+                        try:
+                            await client.send_message(chat_id, pesan)
+                            await asyncio.sleep(1)
+                        except FloodWaitError as fw:
+                            await asyncio.sleep(fw.seconds)
+                            await client.send_message(chat_id, pesan)
+
+            except Exception as e:
+                hasil.append(f"❌ {nama_group} (error: {e})")
+                gagal += 1
 
             bar = progress_bar(i, jumlah)
             await msg.edit(f"🔄 Membuat group/channel...\n{bar}")
 
-        await msg.edit("🎉 Grup/Channel berhasil dibuat:\n\n" + "\n".join(hasil), link_preview=False)
-
     except FloodWaitError as e:
-        await msg.edit(f"⚠️ Kena limit Telegram!\nTunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
+        gagal = jumlah - sukses
+        hasil.append(f"⚠️ Kena limit Telegram! Tunggu {e.seconds//3600} jam {e.seconds%3600//60} menit.")
+
     except Exception as e:
-        await msg.edit(f"❌ Error: {str(e)}")
+        gagal = jumlah - sukses
+        hasil.append(f"❌ Error global: {str(e)}")
+
+    # 🕒 Tambahkan detail hasil di bawah (selalu muncul)
+    now = datetime.now()
+    detail = (
+        "```\n"
+        f"🕒 Detail:\n"
+        f"- jumlah berhasil di buat : {sukses}\n"
+        f"- jumlah gagal di buat    : {gagal}\n\n"
+        f"- Hari   : {now.strftime('%A')}\n"
+        f"- Jam    : {now.strftime('%H:%M:%S')}\n"
+        f"- Tanggal: {now.strftime('%d %B %Y')}\n"
+        "```"
+    )
+
+    await msg.edit(
+        "🎉 Grup/Channel selesai dibuat:\n\n" + "\n".join(hasil) + "\n\n" + detail,
+        link_preview=False
+    )
 
 
 # 📌 .restart
