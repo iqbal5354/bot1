@@ -1,6 +1,7 @@
 import asyncio
 import random
 import datetime
+import logging
 from telethon import events
 from telethon.tl.functions.channels import CreateChannelRequest
 from telethon.tl.functions.messages import CreateChatRequest, ExportChatInviteRequest
@@ -10,11 +11,14 @@ from .random_messages import RANDOM_MESSAGES
 
 OWNER_ID = None
 
+# Setup logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 async def init_owner(client):
     global OWNER_ID
     me = await client.get_me()
     OWNER_ID = me.id
-
+    logging.info(f"OWNER_ID di-set ke {OWNER_ID}")
 
 def format_detail(success, failed):
     now = datetime.datetime.now()
@@ -40,7 +44,6 @@ def format_detail(success, failed):
             f"- Tanggal: {tanggal}"
         )
 
-
 def init(client):
 
     @client.on(events.NewMessage(pattern=r"^\.gas$"))
@@ -62,30 +65,36 @@ def init(client):
                 )
                 resp = await conv.wait_event(events.NewMessage(from_users=event.sender_id), timeout=30)
                 jenis = resp.raw_text.strip().lower()
+                logging.info(f"Jenis dipilih: {jenis}")
 
                 # Step 2: jumlah
                 await conv.send_message("📌 Jumlah yang akan dibuat berapa?")
                 resp = await conv.wait_event(events.NewMessage(from_users=event.sender_id), timeout=30)
                 jumlah = int(resp.raw_text.strip())
+                logging.info(f"Jumlah yang diminta: {jumlah}")
 
                 # Step 3: nama
                 await conv.send_message("📌 Nama grup/channel apa?")
                 resp = await conv.wait_event(events.NewMessage(from_users=event.sender_id), timeout=30)
                 nama = resp.raw_text.strip()
+                logging.info(f"Nama yang diminta: {nama}")
 
                 # Step 4: pesan otomatis
                 await conv.send_message("❓ Apakah ingin ada pesan otomatis? (Y/N)")
                 resp = await conv.wait_event(events.NewMessage(from_users=event.sender_id), timeout=30)
                 auto_pesan = resp.raw_text.strip().lower()
+                logging.info(f"Pesan otomatis dipilih: {auto_pesan}")
 
                 jumlah_pesan = 0
                 if auto_pesan == "y":
                     await conv.send_message("✉️ Berapa jumlah pesan otomatis?")
                     resp = await conv.wait_event(events.NewMessage(from_users=event.sender_id), timeout=30)
                     jumlah_pesan = int(resp.raw_text.strip())
+                    logging.info(f"Jumlah pesan otomatis: {jumlah_pesan}")
 
         except asyncio.TimeoutError:
             await client.send_message(chat.id, "❌ Gagal dijalankan karena waktu habis.")
+            logging.error("Timeout: Tidak ada respon dari user")
             return
 
         # Status sementara
@@ -100,19 +109,19 @@ def init(client):
                         users=[await client.get_me()],
                         title=nama_group,
                     ))
-                    # Ambil entity biar tidak error InvitedUsers
-                    new_chat = await client.get_entity(r.chats[0].id)
-                    chat_id = new_chat.id
+                    # FIX: CreateChatRequest return InvitedUsers, ambil chat_id dengan cara ini
+                    chat_id = r.chats[0].id
+                    logging.info(f"Grup berhasil dibuat: {nama_group} (id={chat_id})")
+
                 else:
                     r = await client(CreateChannelRequest(
                         title=nama_group,
                         about="Dibuat otomatis oleh bot",
-                        megagroup=True,
+                        megagroup=(jenis == "g"),
                     ))
-                    new_chat = await client.get_entity(r.chats[0].id)
-                    chat_id = new_chat.id
+                    chat_id = r.chats[0].id
+                    logging.info(f"Channel berhasil dibuat: {nama_group} (id={chat_id})")
 
-                # Export link
                 link = (await client(ExportChatInviteRequest(chat_id))).link
                 hasil.append(f"✅ [{nama_group}]({link})")
                 sukses += 1
@@ -124,13 +133,16 @@ def init(client):
                         try:
                             await client.send_message(chat_id, pesan)
                             await asyncio.sleep(1)
+                            logging.info(f"Pesan otomatis terkirim ke {nama_group}")
                         except FloodWaitError as fw:
+                            logging.warning(f"FloodWait {fw.seconds} detik, menunggu...")
                             await asyncio.sleep(fw.seconds)
                             await client.send_message(chat_id, pesan)
 
             except Exception as e:
                 hasil.append(f"⚠️ {nama_group} gagal dibuat ({str(e)})")
                 gagal += 1
+                logging.error(f"Gagal membuat {nama_group}: {str(e)}")
 
         # Edit status ke hasil akhir
         await status_msg.edit(
