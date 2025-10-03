@@ -1,6 +1,6 @@
 from .commands import register_commands, init_owner
 from .trx import register_trx
-
+from . import cekip
 from .trxb import init as register_trxb
 ...
 def init(client):
