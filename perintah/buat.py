@@ -44,40 +44,52 @@ def init(client):
 
         async with client.conversation(chat.id, exclusive=True) as conv:
             try:
+                # Step 1: pilih jenis
                 await conv.send_message("🚀 Pembuatan baru dimulai...\nMau **Grub** atau **Channel**?\nKetik `g` untuk grub / `c` untuk channel")
+                await asyncio.sleep(1)  # beri jeda biar siap
                 jenis = (await conv.get_response(timeout=30)).raw_text.strip().lower()
+                if jenis not in ["g", "c"]:
+                    await conv.send_message("❌ Jawaban tidak valid, proses dibatalkan.")
+                    return
             except asyncio.TimeoutError:
-                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis (tidak memilih g/c).")
                 return
 
             try:
+                # Step 2: jumlah
                 await conv.send_message("📌 Jumlah yang akan dibuat berapa?")
+                await asyncio.sleep(1)
                 jumlah = int((await conv.get_response(timeout=30)).raw_text.strip())
             except asyncio.TimeoutError:
-                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis (tidak memberi jumlah).")
                 return
 
             try:
+                # Step 3: nama
                 await conv.send_message("📌 Nama grup/channel apa?")
+                await asyncio.sleep(1)
                 nama = (await conv.get_response(timeout=30)).raw_text.strip()
             except asyncio.TimeoutError:
-                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis (tidak memberi nama).")
                 return
 
             try:
+                # Step 4: pesan otomatis
                 await conv.send_message("❓ Apakah ingin ada pesan otomatis? (Y/N)")
+                await asyncio.sleep(1)
                 auto_pesan = (await conv.get_response(timeout=30)).raw_text.strip().lower()
             except asyncio.TimeoutError:
-                await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                await conv.send_message("❌ Gagal dijalankan karena waktu habis (tidak menjawab Y/N).")
                 return
 
             jumlah_pesan = 0
             if auto_pesan == "y":
                 try:
                     await conv.send_message("✉️ Berapa jumlah pesan otomatis?")
+                    await asyncio.sleep(1)
                     jumlah_pesan = int((await conv.get_response(timeout=30)).raw_text.strip())
                 except asyncio.TimeoutError:
-                    await conv.send_message("❌ Gagal dijalankan karena waktu habis.")
+                    await conv.send_message("❌ Gagal dijalankan karena waktu habis (tidak memberi jumlah pesan).")
                     return
 
         # Status sementara
