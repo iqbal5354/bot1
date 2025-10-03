@@ -1,23 +1,36 @@
-from .commands import register_commands, init_owner
-from .trx import register_trx
+import importlib
+import pkgutil
 
-from .trxb import init as register_trxb
-...
-def init(client):
-    ...
-    register_trxb(client)
-
-
-async def init_all_owner(client):
-    """
-    Inisialisasi OWNER_ID (cukup sekali dari commands.py).
-    """
-    await init_owner(client)
-
+# Dictionary global untuk menampung semua HELP dari tiap modul
+HELP = {}
 
 def init(client):
-    """
-    Daftarkan semua perintah dari folder perintah.
-    """
-    register_commands(client)
-    register_trx(client)
+    # Cari semua modul di dalam package ini (perintah/)
+    package = __name__
+    for _, module_name, ispkg in pkgutil.iter_modules(__path__):
+        if ispkg:
+            continue
+
+        # Skip file init
+        if module_name == "__init__":
+            continue
+
+        try:
+            # Import modul
+            module = importlib.import_module(f"{package}.{module_name}")
+
+            # Jalankan fungsi register(client) kalau ada
+            if hasattr(module, "register"):
+                module.register(client)
+
+            # Gabungkan HELP kalau ada
+            if hasattr(module, "HELP"):
+                for k, v in module.HELP.items():
+                    if k not in HELP:
+                        HELP[k] = []
+                    HELP[k].extend(v)
+
+            print(f"✅ Modul perintah dimuat: {module_name}")
+
+        except Exception as e:
+            print(f"❌ Gagal load modul {module_name}: {e}")
