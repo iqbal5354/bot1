@@ -43,7 +43,7 @@ async def main():
 
     # Load semua perintah via __init__.py
     logging.info("📂 Mulai load perintah...")
-    load_perintah(client)
+    await load_perintah(client)   # ✅ harus pakai await
 
     logging.info("🚀 Semua modul berhasil dimuat, menunggu event ...")
     await client.run_until_disconnected()
