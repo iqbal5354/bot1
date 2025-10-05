@@ -1,6 +1,6 @@
 import os
 import logging
-from telethon import TelegramClient
+from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from perintah import init as load_perintah
 from perintah.addbot import load_token
@@ -25,12 +25,36 @@ else:
     client = TelegramClient(StringSession(SESSION), API_ID, API_HASH)
 
 
+# 🧠 OWNER_ID global
+OWNER_ID = None
+
+
+# 🔐 FILTER GLOBAL — hanya OWNER yang boleh pakai command (. /)
+@client.on(events.NewMessage(incoming=True))
+async def global_owner_filter(event):
+    global OWNER_ID
+    # Abaikan pesan dari bot sendiri (outgoing)
+    if event.out:
+        return
+
+    # Kalau OWNER_ID belum diset, abaikan filter (biar proses init jalan)
+    if OWNER_ID is None:
+        return
+
+    # Jika bukan owner dan teks diawali . atau /
+    if event.sender_id != OWNER_ID and event.raw_text.startswith(('.', '/')):
+        raise events.StopPropagation
+
+
 async def main():
     from tools import get_owner_id, check_mode
 
     try:
         logging.info("🔍 Mendapatkan owner id ...")
         owner_id, owner_name = await get_owner_id(client)
+        # Set OWNER_ID global
+        global OWNER_ID
+        OWNER_ID = owner_id
         logging.info(f"ℹ️ OWNER_ID otomatis diset ke: {owner_id} ({owner_name})")
     except Exception as e:
         logging.error(f"❌ Gagal mendapatkan owner id: {e}", exc_info=True)
