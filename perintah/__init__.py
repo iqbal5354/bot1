@@ -1,11 +1,20 @@
 import importlib
 import pkgutil
 import inspect
+from telethon import events
+from bot import OWNER_ID  # ambil OWNER_ID dari bot.py
 
 # Dictionary global untuk menampung semua HELP dari tiap modul
 HELP = {}
 
 async def init(client):
+    # 🛡️ Filter global: hanya OWNER_ID yang bisa pakai perintah
+    @client.on(events.NewMessage)
+    async def global_owner_filter(event):
+        if event.sender_id != OWNER_ID:
+            event._handled = True  # hentikan propagasi event ke handler lain
+            return
+
     package = __name__
 
     for _, module_name, ispkg in pkgutil.iter_modules(__path__):
